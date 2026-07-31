@@ -2,6 +2,7 @@
   "name": "finanzas-peresito-bot",
   "version": "1.0.0",
   "private": true,
+  "type": "module",
   "description": "Bot de Telegram para cargar movimientos financieros por texto o audio.",
   "scripts": {
     "typecheck": "tsc --noEmit"
