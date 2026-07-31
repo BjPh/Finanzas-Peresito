@@ -1,4 +1,5 @@
--- Ejecutar contra la base Neon conectada al proyecto de Vercel.
+-- Ejecutar contra la base Supabase conectada al proyecto de Vercel
+-- (Supabase SQL Editor, o vía psql con el DATABASE_URL).
 
 CREATE TABLE IF NOT EXISTS movimientos (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),

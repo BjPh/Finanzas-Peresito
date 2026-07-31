@@ -1,10 +1,15 @@
-import { neon } from "@neondatabase/serverless";
+import postgres from "postgres";
+
+let cliente: ReturnType<typeof postgres> | undefined;
 
 function sql() {
   if (!process.env.DATABASE_URL) {
     throw new Error("Falta la variable de entorno DATABASE_URL");
   }
-  return neon(process.env.DATABASE_URL);
+  if (!cliente) {
+    cliente = postgres(process.env.DATABASE_URL, { ssl: "require" });
+  }
+  return cliente;
 }
 
 export type Tipo = "ingreso" | "gasto";
