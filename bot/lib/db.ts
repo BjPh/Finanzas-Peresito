@@ -85,7 +85,10 @@ export async function getConversacionPendiente(chatId: string) {
     FROM conversaciones_pendientes
     WHERE chat_id = ${chatId}
   `;
-  return rows[0] as { chat_id: string; borrador: BorradorMovimiento; pregunta_pendiente: string } | undefined;
+  const fila = rows[0] as { chat_id: string; borrador: BorradorMovimiento | string; pregunta_pendiente: string } | undefined;
+  if (!fila) return undefined;
+  const borrador = typeof fila.borrador === "string" ? JSON.parse(fila.borrador) : fila.borrador;
+  return { ...fila, borrador } as { chat_id: string; borrador: BorradorMovimiento; pregunta_pendiente: string };
 }
 
 export async function guardarConversacionPendiente(
@@ -96,9 +99,9 @@ export async function guardarConversacionPendiente(
   const db = sql();
   await db`
     INSERT INTO conversaciones_pendientes (chat_id, borrador, pregunta_pendiente, actualizado_en)
-    VALUES (${chatId}, ${JSON.stringify(borrador)}, ${preguntaPendiente}, now())
+    VALUES (${chatId}, ${JSON.stringify(borrador)}::jsonb, ${preguntaPendiente}, now())
     ON CONFLICT (chat_id)
-    DO UPDATE SET borrador = ${JSON.stringify(borrador)}, pregunta_pendiente = ${preguntaPendiente}, actualizado_en = now()
+    DO UPDATE SET borrador = ${JSON.stringify(borrador)}::jsonb, pregunta_pendiente = ${preguntaPendiente}, actualizado_en = now()
   `;
 }
 
