@@ -1,5 +1,7 @@
 # Bot de Finanzas (Telegram → Vercel → Neon)
 
+> Proyecto de Vercel: Root Directory = `bot`, Production Branch = `claude/finance-dashboard-setup-p9eo14`.
+
 Recibe mensajes de texto o audio por Telegram, los interpreta como movimientos financieros (ingreso/gasto, cuenta, categoría, monto, descripción) y los guarda en una base de datos Postgres (Neon), para que el dashboard los muestre en vivo.
 
 ## Variables de entorno (configurar en Vercel, nunca commitear)
