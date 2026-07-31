@@ -2,12 +2,28 @@ import postgres from "postgres";
 
 let cliente: ReturnType<typeof postgres> | undefined;
 
-function sql() {
-  if (!process.env.DATABASE_URL) {
-    throw new Error("Falta la variable de entorno DATABASE_URL");
+// La integración de Supabase con Vercel nombra la connection string con un
+// prefijo propio (ej. DATABASE_POSTGRES_URL) en vez de DATABASE_URL a secas.
+// Se prueban los nombres más comunes en orden de preferencia (pooling primero).
+function connectionString(): string {
+  const candidatos = [
+    "DATABASE_URL",
+    "DATABASE_POSTGRES_URL",
+    "POSTGRES_URL",
+    "DATABASE_POSTGRES_URL_NON_POOLING",
+    "POSTGRES_URL_NON_POOLING",
+  ];
+  for (const nombre of candidatos) {
+    if (process.env[nombre]) return process.env[nombre]!;
   }
+  throw new Error(
+    `No se encontró la connection string de la base de datos. Probé: ${candidatos.join(", ")}`
+  );
+}
+
+function sql() {
   if (!cliente) {
-    cliente = postgres(process.env.DATABASE_URL, { ssl: "require" });
+    cliente = postgres(connectionString(), { ssl: "require" });
   }
   return cliente;
 }
