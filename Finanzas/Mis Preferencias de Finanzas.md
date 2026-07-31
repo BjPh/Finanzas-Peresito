@@ -19,6 +19,7 @@ Todavía no se cargó ningún CSV. El dashboard arranca vacío/plantilla, listo 
 - **Comida**: (sin subcategorías)
 - **Salud**: (sin subcategorías)
 - **Mascotas**: (sin subcategorías)
+- **Transferencias**: Padres, Amigos, Otros (transferencias recibidas, personal)
 - **Negocio-Ingresos**: Transferencia (Cliente y Peya), Propinas, Adelantos
 - **Negocio-Gastos**: Servicios, Reparaciones, Combustible, Viático, Transferencia Pago46
 
