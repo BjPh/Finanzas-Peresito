@@ -45,5 +45,16 @@ No hay CSVs cargados todavía, así que este archivo aún no existe. Cuando el u
 
 Las claves internas (`statusMarks`, `categoryOverrides`, `cancelled`, `could cancel`) quedan en inglés por ser un contrato técnico de datos, pero el dashboard siempre las muestra en español ("Cancelada" / "Se podría cancelar").
 
+## Bot de Telegram (carga de movimientos por chat/audio)
+
+- Código en `Finanzas-Peresito/bot/` (proyecto Vercel aparte, mismo repo).
+- Arquitectura: Telegram → webhook en Vercel → si es audio, se transcribe con **Groq (Whisper)**; el texto se interpreta con **Groq (Llama 3.3, tool calling)** para sacar tipo/cuenta/categoría/monto/descripción. Si falta un dato, el bot **repregunta por Telegram** hasta completarlo (no se decidió usar Anthropic para esto — un solo proveedor de IA, Groq, para todo).
+- Se guarda en Postgres (**Neon**, conectado vía integración de Vercel).
+- El dashboard va a consumir `/api/movimientos` para mostrar datos en vivo (pendiente de conectar).
+- Variables de entorno en Vercel: `TELEGRAM_BOT_TOKEN`, `GROQ_API_KEY`, `DATABASE_URL` — nunca en el repo.
+- El proyecto de Vercel se está desplegando en la cuenta de un tercero (amigo del usuario), usando este repo público como fuente.
+- Pendiente: separar el dashboard en pestañas **Personal** y **Trabajo**, con un **Resumen** que tenga un selector Total/Personal/Trabajo para ver el neto de cada área (pedido explícito del usuario, todavía no implementado en el HTML).
+
 ## Historial
 - 2026-07-31: Configuración inicial. Carpeta creada, categorías y metas definidas. Dashboard construido en estado vacío/plantilla (sin transacciones reales).
+- 2026-07-31: Se arrancó el desarrollo del bot de Telegram (scaffold en `bot/`), con Groq como único proveedor de IA (transcripción + interpretación) y Neon como base de datos. Deploy en curso en Vercel (cuenta de un tercero).

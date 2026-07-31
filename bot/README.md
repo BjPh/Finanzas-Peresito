@@ -6,8 +6,7 @@ Recibe mensajes de texto o audio por Telegram, los interpreta como movimientos f
 
 Ver `.env.example`:
 - `TELEGRAM_BOT_TOKEN` — token del bot, obtenido de @BotFather.
-- `GROQ_API_KEY` — para transcribir audios con Whisper vía Groq.
-- `ANTHROPIC_API_KEY` — para interpretar el texto y estructurar el movimiento.
+- `GROQ_API_KEY` — un solo proveedor de IA para todo: transcribe audios con Whisper y también interpreta el texto para estructurar el movimiento (tool calling con Llama 3.3).
 - `DATABASE_URL` — connection string de Neon (la provee la integración de Vercel).
 
 ## Base de datos

@@ -1,32 +1,28 @@
-import Anthropic from "@anthropic-ai/sdk";
 import { CATEGORIAS, categoriaValida, subcategoriaValida } from "./categorias.js";
 import type { BorradorMovimiento } from "./db.js";
 
 const CAMPOS_REQUERIDOS = ["tipo", "cuenta", "categoria", "monto", "descripcion"] as const;
-
-function anthropic() {
-  if (!process.env.ANTHROPIC_API_KEY) {
-    throw new Error("Falta la variable de entorno ANTHROPIC_API_KEY");
-  }
-  return new Anthropic({ apiKey: process.env.ANTHROPIC_API_KEY });
-}
+const MODELO_GROQ = "llama-3.3-70b-versatile";
 
 const CATEGORIAS_DESC = CATEGORIAS.map(
   (c) => `- ${c.nombre} (${c.tipo}${c.subs.length ? `, subcategorías: ${c.subs.join(", ")}` : ""})`
 ).join("\n");
 
 const TOOL = {
-  name: "extraer_movimiento",
-  description: "Extrae los campos de un movimiento financiero a partir de un mensaje en español, completando sobre un borrador previo si existe.",
-  input_schema: {
-    type: "object" as const,
-    properties: {
-      tipo: { type: "string", enum: ["ingreso", "gasto"], description: "Si falta o no se puede inferir, omitir." },
-      cuenta: { type: "string", enum: ["Personal", "Negocio"], description: "Si falta o no se puede inferir, omitir." },
-      categoria: { type: "string", description: "Debe ser una de las categorías definidas. Si falta, omitir." },
-      subcategoria: { type: "string", description: "Solo si la categoría tiene subcategorías y el usuario la mencionó." },
-      monto: { type: "number", description: "Monto en pesos, siempre positivo. Si falta, omitir." },
-      descripcion: { type: "string", description: "Breve descripción de qué fue el movimiento." },
+  type: "function",
+  function: {
+    name: "extraer_movimiento",
+    description: "Extrae los campos de un movimiento financiero a partir de un mensaje en español, completando sobre un borrador previo si existe.",
+    parameters: {
+      type: "object",
+      properties: {
+        tipo: { type: "string", enum: ["ingreso", "gasto"], description: "Si falta o no se puede inferir, omitir." },
+        cuenta: { type: "string", enum: ["Personal", "Negocio"], description: "Si falta o no se puede inferir, omitir." },
+        categoria: { type: "string", description: "Debe ser una de las categorías definidas. Si falta, omitir." },
+        subcategoria: { type: "string", description: "Solo si la categoría tiene subcategorías y el usuario la mencionó." },
+        monto: { type: "number", description: "Monto en pesos, siempre positivo. Si falta, omitir." },
+        descripcion: { type: "string", description: "Breve descripción de qué fue el movimiento." },
+      },
     },
   },
 };
@@ -41,7 +37,9 @@ export async function parsearMovimiento(
   textoUsuario: string,
   borradorPrevio: BorradorMovimiento = {}
 ): Promise<ResultadoParse> {
-  const client = anthropic();
+  if (!process.env.GROQ_API_KEY) {
+    throw new Error("Falta la variable de entorno GROQ_API_KEY");
+  }
 
   const system = `Sos un asistente que ayuda a cargar movimientos financieros (ingresos y gastos) a partir de mensajes en español informal, para una persona con finanzas personales y de negocio combinadas.
 
@@ -56,17 +54,31 @@ Combiná el borrador previo con lo que se pueda extraer del mensaje nuevo y llam
 Si el usuario no aclara cuenta (Personal/Negocio), inferila por la categoría (Negocio-Ingresos/Negocio-Gastos → Negocio; el resto → Personal) salvo que el texto diga explícitamente lo contrario.
 No inventes montos ni categorías que no estén en el mensaje ni en el borrador.`;
 
-  const resp = await client.messages.create({
-    model: "claude-sonnet-5",
-    max_tokens: 512,
-    system,
-    tools: [TOOL],
-    tool_choice: { type: "tool", name: "extraer_movimiento" },
-    messages: [{ role: "user", content: textoUsuario }],
+  const resp = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: MODELO_GROQ,
+      messages: [
+        { role: "system", content: system },
+        { role: "user", content: textoUsuario },
+      ],
+      tools: [TOOL],
+      tool_choice: { type: "function", function: { name: "extraer_movimiento" } },
+    }),
   });
 
-  const toolUse = resp.content.find((b) => b.type === "tool_use");
-  const extraido = (toolUse && "input" in toolUse ? toolUse.input : {}) as BorradorMovimiento;
+  if (!resp.ok) {
+    const detalle = await resp.text();
+    throw new Error(`Groq falló al interpretar el mensaje (${resp.status}): ${detalle}`);
+  }
+
+  const data = await resp.json();
+  const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+  const extraido: BorradorMovimiento = toolCall ? JSON.parse(toolCall.function.arguments) : {};
 
   const borrador: BorradorMovimiento = { ...borradorPrevio, ...extraido };
 
